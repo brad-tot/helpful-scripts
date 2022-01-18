@@ -1,0 +1,85 @@
+arch=arm
+autoconf=off
+baudrate=115200
+board=am335x
+board_name=A335BNLT
+board_rev=000B
+boot_fdt=try
+bootcmd=setenv umsmedia 0; gpio set 53; i2c mw 0x24 1 0x3e; run findfdt; setenv mmcdev 0; setenv bootpart 0:1; run mmcboot;gpio clear 56; gpio clear 55; gpio clear 54; setenv mmcdev 1; setenv bootpart 1:1; run mmcboot;run failumsboot;
+bootcount=4
+bootdelay=1
+bootenv=uEnv.txt
+bootfile=zImage
+bootm_size=0x10000000
+bootpart=0:2
+bootscript=echo Running bootscript from mmc${bootpart} ...; source ${loadaddr}
+console=ttyO0,115200n8
+cpu=armv7
+device=eth0
+dfu_alt_info_emmc=rawemmc raw 0 3751936
+dfu_alt_info_mmc=boot part 0 1;rootfs part 0 2;MLO fat 0 1;MLO.raw raw 0x100 0x100;u-boot.img.raw raw 0x300 0x400;spl-os-args.raw raw 0x80 0x80;spl-os-image.raw raw 0x900 0x2000;spl-os-args fat 0 1;spl-os-image fat 0 1;u-boot.img fat 0 1;uEnv.txt fat 0 1
+dfu_alt_info_ram=kernel ram 0x80200000 0xD80000;fdt ram 0x80F80000 0x80000;ramdisk ram 0x81000000 0x4000000
+eth1addr=d0:ff:50:37:f9:03
+ethact=cpsw
+ethaddr=d0:ff:50:37:f9:01
+failumsboot=echo; echo FAILSAFE: U-Boot UMS (USB Mass Storage) enabled, media now available over the usb slave port ...; ums 0 mmc ${umsmedia};
+fdt_addr_r=0x88000000
+fdtaddr=0x88000000
+fdtdir=/dtbs
+fdtfile=undefined
+findfdt=if test $board_name = A335BONE; then setenv fdtfile am335x-bone.dtb; setenv fdtbase am335x-bone; fi; if test $board_name = A335BNLT; then setenv fdtfile am335x-boneblack.dtb; setenv fdtbase am335x-boneblack; setenv umsmedia 1; fi; if test $board_name = A33515BB; then setenv fdtfile am335x-evm.dtb; fi; if test $board_name = A335X_SK; then setenv fdtfile am335x-evmsk.dtb; fi; if test $fdtfile = undefined; then echo WARNING: Could not determine device tree to use; fi;
+gw_ip=192.168.1.1
+importbootenv=echo Importing environment from mmc ...; env import -t -r $loadaddr $filesize
+kernel_addr_r=0x82000000
+loadaddr=0x82000000
+loadbootenv=load mmc ${bootpart} ${loadaddr} ${bootenv}
+loadbootscript=load mmc ${bootpart} ${loadaddr} ${scriptfile};
+loadfdt=echo loading ${fdtdir}/${fdtfile} ...; load mmc ${bootpart} ${fdtaddr} ${fdtdir}/${fdtfile}
+loadimage=load mmc ${bootpart} ${loadaddr} ${bootdir}/${bootfile}
+loadramdisk=load mmc ${mmcdev} ${rdaddr} ramdisk.gz
+loadrd=load mmc ${bootpart} ${rdaddr} ${bootdir}/${rdfile}; setenv rdsize ${filesize}
+mmcargs=setenv bootargs console=${console} ${optargs} ${cape_disable} ${cape_enable} root=${mmcroot} rootfstype=${mmcrootfstype} ${cmdline}
+mmcboot=mmc dev ${mmcdev}; if mmc rescan; then gpio set 54;setenv bootpart ${mmcdev}:1; if test -e mmc ${bootpart} /etc/fstab; then setenv mmcpart 1;fi; echo Checking for: /uEnv.txt ...;if test -e mmc ${bootpart} /uEnv.txt; then if run loadbootenv; then gpio set 55;echo Loaded environment from ${bootenv};run importbootenv;fi;if test -n ${cape}; then if test -e mmc ${bootpart} ${fdtdir}/${fdtbase}-${cape}.dtb; then setenv fdtfile ${fdtbase}-${cape}.dtb; fi; echo using: $fdtfile...; fi; echo Checking if uenvcmd is set ...;if test -n ${uenvcmd}; then gpio set 56; echo Running uenvcmd ...;run uenvcmd;fi;echo Checking if client_ip is set ...;if test -n ${client_ip}; then if test -n ${dtb}; then setenv fdtfile ${dtb};echo using ${fdtfile} ...;fi;gpio set 56; if test -n ${uname_r}; then echo Running nfsboot_uname_r ...;run nfsboot_uname_r;fi;echo Running nfsboot ...;run nfsboot;fi;fi; echo Checking for: /${script} ...;if test -e mmc ${bootpart} /${script}; then gpio set 55;setenv scriptfile ${script};run loadbootscript;echo Loaded script from ${scriptfile};gpio set 56; run bootscript;fi; echo Checking for: /boot/${script} ...;if test -e mmc ${bootpart} /boot/${script}; then gpio set 55;setenv scriptfile /boot/${script};run loadbootscript;echo Loaded script from ${scriptfile};gpio set 56; run bootscript;fi; echo Checking for: /boot/uEnv.txt ...;for i in 1 2 3 4 5 6 7 ; do setenv mmcpart ${i};setenv bootpart ${mmcdev}:${mmcpart};if test -e mmc ${bootpart} /boot/uEnv.txt; then gpio set 55;load mmc ${bootpart} ${loadaddr} /boot/uEnv.txt;env import -t ${loadaddr} ${filesize};echo Loaded environment from /boot/uEnv.txt;if test -n ${dtb}; then setenv fdtfile ${dtb};echo Using: dtb=${fdtfile} ...;fi;echo Checking if uname_r is set in /boot/uEnv.txt...;if test -n ${uname_r}; then gpio set 56; echo Running uname_boot ...;setenv mmcroot /dev/mmcblk${mmcdev}p${mmcpart} ro;run uname_boot;fi;fi;done;fi;
+mmcdev=0
+mmcloados=run mmcargs; if test ${boot_fdt} = yes || test ${boot_fdt} = try; then if run loadfdt; then bootz ${loadaddr} - ${fdtaddr}; else if test ${boot_fdt} = try; then bootz; else echo WARN: Cannot load the DT; fi; fi; else bootz; fi;
+mmcpart=1
+mmcroot=/dev/mmcblk0p2 ro
+mmcrootfstype=ext4 rootwait fixrtc
+netargs=setenv bootargs console=${console} ${optargs} root=/dev/nfs nfsroot=${serverip}:${rootpath},${nfsopts} rw ip=dhcp
+netboot=echo Booting from network ...; setenv autoload no; dhcp; tftp ${loadaddr} ${bootfile}; tftp ${fdtaddr} ${fdtfile}; run netargs; bootz ${loadaddr} - ${fdtaddr}
+netmask=255.255.255.0
+nfs_options=,vers=3
+nfsargs=setenv bootargs console=${console} ${optargs} ${cape_disable} ${cape_enable} root=/dev/nfs rw rootfstype=${nfsrootfstype} nfsroot=${nfsroot} ip=${ip} ${cmdline}
+nfsboot=echo Booting from ${server_ip} ...; setenv nfsroot ${server_ip}:${root_dir}${nfs_options}; setenv ip ${client_ip}:${server_ip}:${gw_ip}:${netmask}:${hostname}:${device}:${autoconf}; setenv autoload no; setenv serverip ${server_ip}; setenv ipaddr ${client_ip}; tftp ${loadaddr} ${bootfile}; tftp ${fdtaddr} dtbs/${fdtfile}; run nfsargs; bootz ${loadaddr} - ${fdtaddr}
+nfsboot_uname_r=echo Booting from ${server_ip} ...; setenv nfsroot ${server_ip}:${root_dir}${nfs_options}; setenv ip ${client_ip}:${server_ip}:${gw_ip}:${netmask}:${hostname}:${device}:${autoconf}; setenv autoload no; setenv serverip ${server_ip}; setenv ipaddr ${client_ip}; tftp ${loadaddr} vmlinuz-${uname_r}; tftp ${fdtaddr} dtbs/${uname_r}/${fdtfile}; run nfsargs; bootz ${loadaddr} - ${fdtaddr}
+nfsopts=nolock
+nfsrootfstype=ext4 rootwait fixrtc
+partitions=uuid_disk=${uuid_gpt_disk};name=rootfs,start=2MiB,size=-,uuid=${uuid_gpt_rootfs}
+ramargs=setenv bootargs console=${console} ${optargs} root=${ramroot} rootfstype=${ramrootfstype}
+ramboot=echo Booting from ramdisk ...; run ramargs; bootz ${loadaddr} ${rdaddr} ${fdtaddr}
+ramdisk_addr_r=0x88080000
+ramroot=/dev/ram0 rw
+ramrootfstype=ext2
+rdaddr=0x88080000
+root_dir=/home/userid/targetNFS
+rootpath=/export/rootfs
+script=boot.scr
+scriptfile=${script}
+server_ip=192.168.1.100
+soc=am33xx
+spiargs=setenv bootargs console=${console} ${optargs} root=${spiroot} rootfstype=${spirootfstype}
+spiboot=echo Booting from spi ...; run spiargs; sf probe ${spibusno}:0; sf read ${loadaddr} ${spisrcaddr} ${spiimgsize}; bootz ${loadaddr}
+spibusno=0
+spiimgsize=0x362000
+spiroot=/dev/mtdblock4 rw
+spirootfstype=jffs2
+spisrcaddr=0xe0000
+static_ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}::off
+stderr=serial_omap
+stdin=serial_omap
+stdout=serial_omap
+uname_boot=setenv bootdir /boot; setenv bootfile vmlinuz-${uname_r}; if test -e mmc ${bootpart} ${bootdir}/${bootfile}; then echo loading ${bootdir}/${bootfile} ...; run loadimage;setenv fdtdir /boot/dtbs/${uname_r}; if test -e mmc ${bootpart} ${fdtdir}/${fdtfile}; then run loadfdt;else setenv fdtdir /usr/lib/linux-image-${uname_r}; if test -e mmc ${bootpart} ${fdtdir}/${fdtfile}; then run loadfdt;else setenv fdtdir /lib/firmware/${uname_r}/device-tree; if test -e mmc ${bootpart} ${fdtdir}/${fdtfile}; then run loadfdt;else setenv fdtdir /boot/dtb-${uname_r}; if test -e mmc ${bootpart} ${fdtdir}/${fdtfile}; then run loadfdt;else setenv fdtdir /boot/dtbs; if test -e mmc ${bootpart} ${fdtdir}/${fdtfile}; then run loadfdt;else setenv fdtdir /boot/dtb; if test -e mmc ${bootpart} ${fdtdir}/${fdtfile}; then run loadfdt;else setenv fdtdir /boot; if test -e mmc ${bootpart} ${fdtdir}/${fdtfile}; then run loadfdt;else if test -e mmc ${bootpart} ${fdtfile}; then run loadfdt;else echo; echo unable to find [dtb=${fdtfile}] did you name it correctly? ...; run failumsboot;fi;fi;fi;fi;fi;fi;fi;fi; setenv rdfile initrd.img-${uname_r}; if test -e mmc ${bootpart} ${bootdir}/${rdfile}; then echo loading ${bootdir}/${rdfile} ...; run loadrd;if test -n ${uuid}; then setenv mmcroot UUID=${uuid} ro;fi;run mmcargs;echo debug: [${bootargs}] ... ;echo debug: [bootz ${loadaddr} ${rdaddr}:${rdsize} ${fdtaddr}] ... ;bootz ${loadaddr} ${rdaddr}:${rdsize} ${fdtaddr}; else run mmcargs;echo debug: [${bootargs}] ... ;echo debug: [bootz ${loadaddr} - ${fdtaddr}] ... ;bootz ${loadaddr} - ${fdtaddr}; fi;fi;
+vendor=ti
+ver=U-Boot 2015.01-00001-gb2412df (Jan 29 2015 - 15:01:06)
+
+Environment size: 8778/131068 bytes
