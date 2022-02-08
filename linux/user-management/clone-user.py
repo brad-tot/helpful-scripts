@@ -3,6 +3,8 @@
 # Purpose: I wrote this script to setup my BeagleBone Black with a custom user.
 #          The debian distribution for the bone includes a demo user: debian.
 #          I use this script to clone that user into one of my own.
+# Example: sudo ./clone-user.py -c debian -n tot -fn "Takeoff Technical"
+# Note:    Be sure to call "sudo passwd <username>" after this call to set pw
 # License: GPL v3
 # ----------------------------------------------------------------------------
 
