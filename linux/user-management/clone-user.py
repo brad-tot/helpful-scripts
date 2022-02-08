@@ -71,6 +71,8 @@ for group in grp.getgrall():
 # Call adduser to get the job done
 cmd = [
     'useradd', 
+    '--shell',
+    clone_user.pw_shell,
     '--create-home',
     '--user-group',
     '--groups',
